@@ -1,20 +1,20 @@
 ﻿namespace Client
 {
+    using log4net.Config;
+    using MassTransit;
+    using MassTransit.AzureServiceBusTransport;
+    using MassTransit.Log4NetIntegration.Logging;
+    using MassTransit.Util;
+    using Microsoft.ServiceBus;
+    using Sample.MessageTypes;
     using System;
-    using System.Configuration;
     using System.IO;
     using System.Text;
     using System.Threading.Tasks;
-    using log4net.Config;
-    using MassTransit;
-    using MassTransit.Log4NetIntegration.Logging;
-    using MassTransit.Util;
-    using Sample.MessageTypes;
 
-
-    class Program
+    internal class Program
     {
-        static void Main()
+        private static void Main()
         {
             ConfigureLogger();
 
@@ -29,12 +29,9 @@
             {
                 IRequestClient<ISimpleRequest, ISimpleResponse> client = CreateRequestClient(busControl);
 
-                for (;;)
+                for (int i = 0; i < 9999; i++)
                 {
-                    Console.Write("Enter customer id (quit exits): ");
-                    string customerId = Console.ReadLine();
-                    if (customerId == "quit")
-                        break;
+                    string customerId = "jon" + i;
 
                     // this is run as a Task to avoid weird console application issues
                     Task.Run(async () =>
@@ -55,26 +52,28 @@
             }
         }
 
-
-        static IRequestClient<ISimpleRequest, ISimpleResponse> CreateRequestClient(IBusControl busControl)
+        private static IRequestClient<ISimpleRequest, ISimpleResponse> CreateRequestClient(IBusControl busControl)
         {
-            var serviceAddress = new Uri(ConfigurationManager.AppSettings["ServiceAddress"]);
+            var serviceAddress = new Uri("sb://jperotest.servicebus.windows.net/request_service");
             IRequestClient<ISimpleRequest, ISimpleResponse> client =
                 busControl.CreateRequestClient<ISimpleRequest, ISimpleResponse>(serviceAddress, TimeSpan.FromSeconds(10));
 
             return client;
         }
 
-        static IBusControl CreateBus()
+        private static IBusControl CreateBus()
         {
-            return Bus.Factory.CreateUsingRabbitMq(x => x.Host(new Uri(ConfigurationManager.AppSettings["RabbitMQHost"]), h =>
+            return Bus.Factory.CreateUsingAzureServiceBus(x =>
             {
-                h.Username("guest");
-                h.Password("guest");
-            }));
+                var host = x.Host(new Uri("sb://jperotest.servicebus.windows.net/"), h =>
+                {
+                    h.OperationTimeout = TimeSpan.FromSeconds(30);
+                    h.TokenProvider = TokenProvider.CreateSharedAccessSignatureTokenProvider("queue_mgr", "xxx");
+                });
+            });
         }
 
-        static void ConfigureLogger()
+        private static void ConfigureLogger()
         {
             const string logConfig = @"<?xml version=""1.0"" encoding=""utf-8"" ?>
 <log4net>
@@ -95,12 +94,11 @@
             }
         }
 
-
-        class SimpleRequest :
+        private class SimpleRequest :
             ISimpleRequest
         {
-            readonly string _customerId;
-            readonly DateTime _timestamp;
+            private readonly string _customerId;
+            private readonly DateTime _timestamp;
 
             public SimpleRequest(string customerId)
             {

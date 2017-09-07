@@ -1,31 +1,31 @@
 ﻿namespace RequestService
 {
+    using MassTransit;
+    using MassTransit.AzureServiceBusTransport;
+    using MassTransit.Util;
+    using Microsoft.ServiceBus;
     using System;
     using System.Configuration;
-    using MassTransit;
-    using MassTransit.RabbitMqTransport;
-    using MassTransit.Util;
     using Topshelf;
     using Topshelf.Logging;
 
-
-    class RequestService :
+    internal class RequestService :
         ServiceControl
     {
-        readonly LogWriter _log = HostLogger.Get<RequestService>();
+        private readonly LogWriter _log = HostLogger.Get<RequestService>();
 
-        IBusControl _busControl;
+        private IBusControl _busControl;
 
         public bool Start(HostControl hostControl)
         {
             _log.Info("Creating bus...");
 
-            _busControl = Bus.Factory.CreateUsingRabbitMq(x =>
+            _busControl = Bus.Factory.CreateUsingAzureServiceBus(x =>
             {
-                IRabbitMqHost host = x.Host(new Uri(ConfigurationManager.AppSettings["RabbitMQHost"]), h =>
+                var host = x.Host(new Uri("sb://jperotest.servicebus.windows.net/"), h =>
                 {
-                    h.Username("guest");
-                    h.Password("guest");
+                    h.OperationTimeout = TimeSpan.FromSeconds(10);
+                    h.TokenProvider = TokenProvider.CreateSharedAccessSignatureTokenProvider("queue_mgr", "xxx");
                 });
 
                 x.ReceiveEndpoint(host, ConfigurationManager.AppSettings["ServiceQueueName"],

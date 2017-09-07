@@ -1,15 +1,14 @@
 ﻿namespace RequestService
 {
-    using System.Threading.Tasks;
     using MassTransit;
     using MassTransit.Logging;
     using Sample.MessageTypes;
-
+    using System.Threading.Tasks;
 
     public class RequestConsumer :
         IConsumer<ISimpleRequest>
     {
-        readonly ILog _log = Logger.Get<RequestConsumer>();
+        private readonly ILog _log = Logger.Get<RequestConsumer>();
 
         public async Task Consume(ConsumeContext<ISimpleRequest> context)
         {
@@ -21,8 +20,7 @@
             });
         }
 
-
-        class SimpleResponse :
+        private class SimpleResponse :
             ISimpleResponse
         {
             public string CusomerName { get; set; }

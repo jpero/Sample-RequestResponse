@@ -1,16 +1,15 @@
 ﻿namespace RequestService
 {
-    using System.IO;
-    using System.Text;
     using log4net.Config;
     using MassTransit.Log4NetIntegration.Logging;
+    using System.IO;
+    using System.Text;
     using Topshelf;
     using Topshelf.Logging;
 
-
-    class Program
+    internal class Program
     {
-        static int Main(string[] args)
+        private static int Main(string[] args)
         {
             ConfigureLogger();
 
@@ -23,7 +22,7 @@
             return (int)HostFactory.Run(x => x.Service<RequestService>());
         }
 
-        static void ConfigureLogger()
+        private static void ConfigureLogger()
         {
             const string logConfig = @"<?xml version=""1.0"" encoding=""utf-8"" ?>
 <log4net>

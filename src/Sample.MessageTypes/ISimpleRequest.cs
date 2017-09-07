@@ -2,7 +2,6 @@
 {
     using System;
 
-
     public interface ISimpleRequest
     {
         /// <summary>
